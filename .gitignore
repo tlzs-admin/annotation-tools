@@ -15,3 +15,5 @@
 *.so
 *.bak
 
+!conf
+!conf/*.json

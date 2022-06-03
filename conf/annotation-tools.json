@@ -1,0 +1,14 @@
+{
+	"labels_file": "conf/labels.json",
+
+	"fg-color": "cyan",				// "#00FFFF"
+	"bg-color": "white",			// "#FFFFFF"
+	"selection-color": "yellow",	
+	"line-size": 3,
+	"font-name": "IPAMincho,IPA明朝:style=Regular", //"DejaVu Sans Mono",
+	"font-size": 16,
+	"font-color": "#FF00FF",
+	
+	"ext_name": ".txt",
+	"working_path": ".",
+}

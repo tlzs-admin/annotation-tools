@@ -154,7 +154,21 @@ static void on_save_annotation(GtkWidget * button, shell_private_t * priv)
 	assert(list);
 
 	int rc = list->save(list, priv->label_file);
-	assert(0 == rc);
+	if(rc) {
+		char err_msg[PATH_MAX + 100] = "";
+		snprintf(err_msg, sizeof(err_msg),
+			"<b>Save Annotation Failed.</b>\n"
+			"label_file: %s\n",
+			priv->label_file);
+		GtkWidget *dlg = gtk_message_dialog_new(GTK_WINDOW(priv->window), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, 
+			GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE,
+			NULL);
+		gtk_message_dialog_set_markup(GTK_MESSAGE_DIALOG(dlg), err_msg);
+		gtk_widget_show_all(dlg);
+		gtk_dialog_run(GTK_DIALOG(dlg));
+		gtk_widget_hide(dlg);
+		gtk_widget_destroy(dlg);
+	}
 	return;
 }
 

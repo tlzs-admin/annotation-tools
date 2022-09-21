@@ -234,8 +234,10 @@ int main(int argc, char **argv)
 
 	char * p_bin_dir = strstr(lang_dir, "/bin");
 	if(p_bin_dir) *p_bin_dir = '\0';
-
 	strncpy(g_app_path, lang_dir, sizeof(g_app_path));
+	
+	printf("work_dir: %s\n", g_app_path);
+	chdir(g_app_path);
 	
 	strcat(lang_dir, "/lang");
 	printf("text_domain_path: %s\n", lang_dir);

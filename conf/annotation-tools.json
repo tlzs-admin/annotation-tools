@@ -12,5 +12,5 @@
 	"ext_name": ".txt",
 	"working_path": ".",
 	
-	"ai-server-url": "https://api.tlzs.info/ai",
+	"ai-server-url": "http://127.0.0.1:9090/ai",
 }

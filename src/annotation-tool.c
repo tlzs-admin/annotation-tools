@@ -47,6 +47,8 @@
 #include <getopt.h>
 #include "utils.h"
 
+#include "ai-client.h"
+
 static global_params_t g_params[1];
 
 void show_help(const char * exe_name)
@@ -132,6 +134,10 @@ void global_params_dump(global_params_t * params)
 
 		printf("\t%.3d: [%s]\n", i, label);
 	}
+	
+	if(params->ai) {
+		printf("ai: %p, server_url: %s\n", params->ai, params->ai->ai_server_url);
+	}
 	return;
 }
 
@@ -164,7 +170,16 @@ int global_params_load_config(global_params_t * params, json_object * jconfig)
 	params->line_size = line_size;
 	params->font_size = font_size;
 	params->font_name = font_name;
-
+	
+	const char *ai_server_url = json_get_value(jconfig, string, ai-server-url);
+	if(ai_server_url) {
+		struct ai_client *ai = ai_client_init(NULL, params);
+		if(ai) {
+			params->ai = ai;
+			ai->set_url(ai, ai_server_url);
+		}
+	}
+	
 	global_params_dump(params);
 	return 0;
 }

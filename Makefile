@@ -25,7 +25,8 @@ LIBS += $(shell pkg-config --libs gtk+-3.0)
 CFLAGS += $(shell pkg-config --cflags gio-2.0 glib-2.0)
 LIBS += $(shell pkg-config --libs gio-2.0 glib-2.0)
 
-
+CFLAGS += $(shell pkg-config --cflags libsoup-2.4)
+LIBS += $(shell pkg-config --libs libsoup-2.4)
 
 
 SOURCES := $(wildcard src/*.c)

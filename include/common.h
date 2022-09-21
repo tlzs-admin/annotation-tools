@@ -19,6 +19,7 @@ extern "C" {
 
 #include <gtk/gtk.h>
 
+struct ai_client;
 struct shell_ctx;
 typedef struct global_params
 {
@@ -36,6 +37,8 @@ typedef struct global_params
 	GdkRGBA font_color;
 	double font_size;
 	const char * font_name;
+	
+	struct ai_client *ai;
 }global_params_t;
 global_params_t * global_params_get_default();
 

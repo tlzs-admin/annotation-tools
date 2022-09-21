@@ -34,6 +34,8 @@
 #include "property-list.h"
 #include "utils.h"
 
+#include "ai-client.h"
+
 const char * get_app_path(void);
 typedef struct shell_private
 {
@@ -56,7 +58,10 @@ typedef struct shell_private
 
 	guint timer_id;
 	int (* on_update)(struct shell_ctx * shell);
+	
+	int ai_enabled;
 }shell_private_t;
+int show_error_message(struct shell_private *priv, const char *fmt, ...);
 
 static int shell_stop(shell_ctx_t * shell)
 {
@@ -68,15 +73,71 @@ static int shell_stop(shell_ctx_t * shell)
 	return 0;
 }
 
+int auto_parse_image(struct ai_client *ai, const char *image_file, const char *annotation_file)
+{
+	if(NULL == ai) return -1;
+	
+	int rc = 0;
+	unsigned char *image_data = NULL;
+	ssize_t cb_image = load_binary_data(image_file, &image_data);
+	if(cb_image <= 0 || NULL == image_data) return -1;
+	
+	json_object *jresult = NULL;
+	json_object *jdetections = NULL;
+	
+	rc = ai->predict(ai, image_data, cb_image, &jresult);
+	if(rc) {
+		if(jresult) json_object_put(jresult);
+		return -1;
+	}
+	json_bool ok = json_object_object_get_ex(jresult, "detections", &jdetections);
+	
+	rc = -1;
+	FILE *fp = NULL;
+	int num_detections = 0;
+	if(ok && jdetections)
+	{
+		num_detections = json_object_array_length(jdetections);
+		fp = fopen(annotation_file, "w+");
+	}
+	if(fp) {
+		for(int i = 0; i < num_detections; ++i) {
+			json_object *jdet = json_object_array_get_idx(jdetections, i);
+			if(NULL == jdet) continue;
+			
+			int class_index = json_get_value(jdet, int, class_index);
+			double left = json_get_value(jdet, double, left);
+			double top = json_get_value(jdet, double, top);
+			double width = json_get_value(jdet, double, width);
+			double height = json_get_value(jdet, double, height);
+			
+			double center_x = left + width / 2.0;
+			double center_y = top + height / 2.0;
+			 
+			fprintf(fp, "%d %g %g %g %g\n", class_index, 
+				center_x, center_y, width, height);
+		}
+		fclose(fp);
+		rc = 0;
+		
+	}
+	json_object_put(jresult);
+	return rc;
+}
+
 static void on_load_image(GtkButton * button, shell_private_t * priv)
 {
-	GtkWidget * dlg = gtk_file_chooser_dialog_new(_("load image"), 
-		GTK_WINDOW(priv->window),
-		GTK_FILE_CHOOSER_ACTION_OPEN,
-		_("open"), GTK_RESPONSE_APPLY,
-		_("cancel"), GTK_RESPONSE_CANCEL,
-		NULL
-		);
+	static GtkWidget *dlg = NULL;
+	if(NULL == dlg) {
+		dlg = gtk_file_chooser_dialog_new(_("load image"), 
+			GTK_WINDOW(priv->window),
+			GTK_FILE_CHOOSER_ACTION_OPEN,
+			_("open"), GTK_RESPONSE_APPLY,
+			_("cancel"), GTK_RESPONSE_CANCEL,
+			NULL
+			);
+		assert(dlg);
+	}
 	GtkFileFilter * filter = gtk_file_filter_new();
 	gtk_file_filter_set_name(filter, "image files (jpeg/png)");
 	gtk_file_filter_add_mime_type(filter, "image/jpeg");
@@ -90,11 +151,12 @@ static void on_load_image(GtkButton * button, shell_private_t * priv)
 	gtk_widget_show_all(dlg);
 	
 	int response = gtk_dialog_run(GTK_DIALOG(dlg));
+	gtk_widget_hide(dlg);
+	
 	switch(response)
 	{
 	case GTK_RESPONSE_APPLY: break;
-	default:
-		gtk_widget_destroy(dlg);
+	default:	
 		return;
 	}
 
@@ -113,7 +175,11 @@ static void on_load_image(GtkButton * button, shell_private_t * priv)
 	priv->label_file[0] = '\0';
 
 	rc = check_file(path_name);
-	assert(0 == rc);
+	if(rc) {
+		show_error_message(priv, "invalid image path_name: %s\n", path_name);
+		return;
+	}
+	
 	strncpy(priv->image_file, path_name, sizeof(priv->image_file));
 	
 	char annotation_file[PATH_MAX] = "";
@@ -123,8 +189,15 @@ static void on_load_image(GtkButton * button, shell_private_t * priv)
 	if(p_ext) strcpy(p_ext, ".txt");
 	else strcat(annotation_file, ".txt");
 	
-	strncpy(priv->label_file, annotation_file, sizeof(priv->label_file));
-	rc = check_file(priv->label_file);
+	rc = check_file(annotation_file);
+	if(rc || priv->ai_enabled) {
+		global_params_t *params = priv->base->user_data;
+		assert(params);
+		rc = auto_parse_image(params->ai, priv->image_file, annotation_file);
+	}
+	if(0 == rc) {
+		strncpy(priv->label_file, annotation_file, sizeof(priv->label_file));
+	}
 	
 	da_panel_t * panel = priv->panels[0];
 	assert(panel->load_image);
@@ -144,7 +217,6 @@ static void on_load_image(GtkButton * button, shell_private_t * priv)
 		panel->load_image(panel, path_name);
 	}
 	
-	gtk_widget_destroy(dlg);
 	return;
 }
 
@@ -155,19 +227,9 @@ static void on_save_annotation(GtkWidget * button, shell_private_t * priv)
 
 	int rc = list->save(list, priv->label_file);
 	if(rc) {
-		char err_msg[PATH_MAX + 100] = "";
-		snprintf(err_msg, sizeof(err_msg),
-			"<b>Save Annotation Failed.</b>\n"
-			"label_file: %s\n",
+		show_error_message(priv, 
+			"<b>save annotation failed.</b>\nlabel_file: %s",
 			priv->label_file);
-		GtkWidget *dlg = gtk_message_dialog_new(GTK_WINDOW(priv->window), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, 
-			GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE,
-			NULL);
-		gtk_message_dialog_set_markup(GTK_MESSAGE_DIALOG(dlg), err_msg);
-		gtk_widget_show_all(dlg);
-		gtk_dialog_run(GTK_DIALOG(dlg));
-		gtk_widget_hide(dlg);
-		gtk_widget_destroy(dlg);
 	}
 	return;
 }
@@ -395,4 +457,30 @@ void shell_set_current_label(shell_ctx_t * shell, int klass)
 	GtkComboBox * combo = GTK_COMBO_BOX(priv->combo);
 	gtk_combo_box_set_active(combo, klass);
 	return;
+}
+
+int show_error_message(struct shell_private *priv, const char *fmt, ...)
+{
+	static GtkWidget *dlg = NULL;
+	
+	char msg[PATH_MAX] = "";
+	int cb_msg = 0;
+	va_list ap;
+	va_start(ap, fmt);
+	cb_msg = vsnprintf(msg, sizeof(msg) - 1, fmt, ap);
+	va_end(ap);
+	debug_printf("cb_msg: %d, err_msg: %s\n", cb_msg, msg);
+	
+	if(NULL == dlg) {
+		dlg = gtk_message_dialog_new(GTK_WINDOW(priv->window), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, 
+			GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE,
+			NULL);
+		assert(dlg);
+	}
+	
+	gtk_message_dialog_set_markup(GTK_MESSAGE_DIALOG(dlg), msg);
+	gtk_widget_show_all(dlg);
+	gtk_dialog_run(GTK_DIALOG(dlg));
+	gtk_widget_hide(dlg);
+	return 0;
 }

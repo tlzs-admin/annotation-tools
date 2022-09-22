@@ -19,7 +19,7 @@ typedef struct property_list
 	annotation_list_t annotations[1];
 }property_list_t;
 
-property_list_t * property_list_new(void * user_data);
+property_list_t * property_list_new(GtkWidget *treeview, GtkWidget *scrolled_win, void * user_data);
 void property_list_free(property_list_t * list);
 void property_list_redraw(property_list_t * props);
 

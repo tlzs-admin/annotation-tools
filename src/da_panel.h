@@ -8,8 +8,7 @@ extern "C" {
 
 
 #include "img_proc.h"
-#include <gtk/gtk.h>
-
+#include "shell.h"
 
 enum border_type
 {
@@ -51,7 +50,8 @@ typedef struct da_panel
 {
 	GtkWidget * frame;
 	GtkWidget * da;
-	void * shell;
+	struct shell_context *shell;
+	
 	int width;		// viewport width
 	int height;		// viewport height
 
@@ -82,7 +82,7 @@ typedef struct da_panel
 	int def_class;
 }da_panel_t;
 
-da_panel_t * da_panel_new(int min_width, int min_height, shell_ctx_t * shell);
+da_panel_t * da_panel_new(int min_width, int min_height, struct shell_context *shell);
 void da_panel_free(da_panel_t * panel);
 
 void da_panel_set_annotation(da_panel_t * panel, int klass);

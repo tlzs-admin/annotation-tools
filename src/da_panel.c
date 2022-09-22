@@ -526,6 +526,11 @@ static gboolean on_da_motion_notify(GtkWidget * da, GdkEventMotion * event, da_p
 static void draw_annotations(da_panel_t * panel, cairo_t * cr)
 {
 	annotation_list_t * list = panel->annotations;
+	if(NULL == list) {
+			list = shell_get_annotations(panel->shell);
+			assert(list);
+			panel->annotations = list;
+	}
 	if(NULL == list) return;
 
 	int width = panel->width;
@@ -600,7 +605,7 @@ static void draw_annotations(da_panel_t * panel, cairo_t * cr)
 			cairo_show_text(cr, label);
 		}
 		
-		printf("== draw_annotation[%d]: klass=%d, { %.3f, %.3f, %.3f, %.3f }, font_name=%s\n",
+		debug_printf("== draw_annotation[%d]: klass=%d, { %.3f, %.3f, %.3f, %.3f }, font_name=%s\n",
 			(int)i,
 			(int)data->klass,
 			data->x, data->y, data->width, data->height,
@@ -671,7 +676,6 @@ static gboolean on_da_draw(GtkWidget * da, cairo_t * cr, da_panel_t * panel)
 		double x = 10;
 		double y = 30;
 		
-
 		cairo_text_extents_t extents;
 		memset(&extents, 0, sizeof(extents));
 
@@ -684,7 +688,6 @@ static gboolean on_da_draw(GtkWidget * da, cairo_t * cr, da_panel_t * panel)
 		fprintf(stderr, "text range: width=%.2f, height = %.2f\n", extents.width, extents.height);
 		cairo_rectangle(cr, x - 5, y - 5 - extents.height, extents.width + 10, extents.height + 10);
 		cairo_fill(cr);
-
 
 		cairo_move_to(cr, x, y);
 		cairo_set_source_rgb(cr, font_color.red, font_color.green, font_color.blue);
@@ -772,11 +775,14 @@ static int da_panel_load_image(struct da_panel * panel, const char * path_name)
 }
 
 
-da_panel_t * da_panel_new(int min_width, int min_height, shell_ctx_t * shell)
+da_panel_t * da_panel_new(int min_width, int min_height, struct shell_context * shell)
 {
+	assert(shell);
+	
 	da_panel_t * panel = calloc(1, sizeof(*panel));
 	assert(panel);
-
+	panel->shell = shell;
+	
 	panel->draw = da_panel_draw;
 	panel->load_image = da_panel_load_image;
 	panel->annotations = shell_get_annotations(shell);
@@ -847,6 +853,7 @@ void da_panel_set_annotation(da_panel_t * panel, int klass)
 	panel->def_class = klass;
 
 	annotation_list_t * list = panel->annotations;
+	if(NULL == list) return;
 	assert(list);
 
 	if(cur_index < 0 || cur_index >= list->length)

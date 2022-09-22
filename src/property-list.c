@@ -74,14 +74,14 @@ static void init_treeview(GtkTreeView * treeview)
 }
 
 
-property_list_t * property_list_new(void * user_data)
+property_list_t * property_list_new(GtkWidget *treeview, GtkWidget *scrolled_win, void * user_data)
 {
-	GtkWidget * scrolled_win = gtk_scrolled_window_new(NULL, NULL);
-	GtkWidget * treeview = gtk_tree_view_new();
-	gtk_container_add(GTK_CONTAINER(scrolled_win), treeview);
-
-	
-
+	if(NULL == treeview) {
+		if(NULL ==scrolled_win) scrolled_win = gtk_scrolled_window_new(NULL, NULL);
+		
+		treeview = gtk_tree_view_new();
+		gtk_container_add(GTK_CONTAINER(scrolled_win), treeview);
+	}
 	property_list_t * list = calloc(1, sizeof(*list));
 	assert(list);
 	
@@ -90,13 +90,14 @@ property_list_t * property_list_new(void * user_data)
 
 	list->scrolled_win = scrolled_win;
 	list->treeview = treeview;
-
-	gtk_widget_set_hexpand(scrolled_win, TRUE);
-	gtk_widget_set_vexpand(scrolled_win, TRUE);
-
-	gtk_scrolled_window_set_shadow_type(GTK_SCROLLED_WINDOW(scrolled_win), GTK_SHADOW_ETCHED_OUT);
-	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled_win), GTK_POLICY_AUTOMATIC, GTK_POLICY_ALWAYS);
-
+	
+	if(scrolled_win) {
+		gtk_widget_set_hexpand(scrolled_win, TRUE);
+		gtk_widget_set_vexpand(scrolled_win, TRUE);
+		
+		gtk_scrolled_window_set_shadow_type(GTK_SCROLLED_WINDOW(scrolled_win), GTK_SHADOW_ETCHED_OUT);
+		gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled_win), GTK_POLICY_AUTOMATIC, GTK_POLICY_ALWAYS);
+	}
 	init_treeview(GTK_TREE_VIEW(treeview));
 
 	return list;

@@ -237,6 +237,7 @@ int main(int argc, char **argv)
 {
 	int rc = 0;
 	setlocale(LC_ALL, "");
+	gtk_init(&argc, &argv);
 
 	// getrealpath
 	char realpath[PATH_MAX] = "";
@@ -261,20 +262,19 @@ int main(int argc, char **argv)
 	rc = global_params_parse_args(params, argc, argv);
 	assert(0 == rc);
 	
-	shell_ctx_t * shell = shell_new(argc, argv, params);
+	struct shell_context * shell = shell_context_init(NULL, params);
 	assert(shell);
+	
 	const char * path = bindtextdomain(TEXT_DOMAIN, lang_dir);
 	textdomain(TEXT_DOMAIN);
 
 	printf("%s = %s\n", _("binding path"),  path);
-
-	
 	rc = shell->init(shell, NULL);
 	assert(0 == rc);
 
 	rc = shell->run(shell);
 
-	shell_cleanup(shell);
+	shell_context_cleanup(shell);
 	return rc;
 }
 

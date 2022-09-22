@@ -17,3 +17,6 @@
 
 !conf
 !conf/*.json
+
+!*.xml
+!*.ui

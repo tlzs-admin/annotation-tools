@@ -187,7 +187,7 @@
               </packing>
             </child>
             <child>
-              <object class="GtkSwitch">
+              <object class="GtkSwitch" id="ai_flags">
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
               </object>

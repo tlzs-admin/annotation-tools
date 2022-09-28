@@ -529,6 +529,14 @@ static int init_windows(struct shell_context *shell)
 	gtk_window_set_role(GTK_WINDOW(window), "tools");
 	return 0;
 }
+static gboolean on_ai_flags_state_changed(GtkSwitch *widget, gboolean state, struct shell_context *shell)
+{
+	assert(shell && shell->priv);
+	struct shell_private *priv = shell->priv;
+	
+	priv->ai_enabled = state;
+	return FALSE;
+}
 
 static int init_windows_with_ui_file(struct shell_context *shell, const char *ui_file)
 {
@@ -593,7 +601,10 @@ static int init_windows_with_ui_file(struct shell_context *shell, const char *ui
 	init_classes_combo(priv->combo, store, shell);
 	init_classes_tree(priv->classes_list, store, shell);
 	
-	// todo ...
+	
+	GtkWidget *ai_flags_switcher = get_widget(builder, "ai_flags");
+	assert(ai_flags_switcher);
+	g_signal_connect(ai_flags_switcher, "state-set", G_CALLBACK(on_ai_flags_state_changed), shell);
 	
 	
 	// ...

@@ -37,6 +37,7 @@ typedef struct shell_private
 	
 	int show_sidebar;
 	int show_properties_list;
+	GtkWidget *file_chooser;
 }shell_private_t;
 
 

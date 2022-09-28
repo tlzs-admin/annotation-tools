@@ -535,6 +535,10 @@ static gboolean on_ai_flags_state_changed(GtkSwitch *widget, gboolean state, str
 	struct shell_private *priv = shell->priv;
 	
 	priv->ai_enabled = state;
+	
+	on_image_file_changed(GTK_FILE_CHOOSER_BUTTON(priv->file_chooser), shell);
+	gtk_widget_queue_draw(priv->panels[0]->da);
+	
 	return FALSE;
 }
 static void on_toggle_sidebar(GtkToggleButton *toggle, struct shell_context *shell)
@@ -615,6 +619,7 @@ static int init_windows_with_ui_file(struct shell_context *shell, const char *ui
 	priv->statusbar = statusbar;
 	priv->combo = classes_combo;
 	priv->classes_list = classes_list;
+	priv->file_chooser = file_chooser;
 	
 	property_list_t * list = property_list_new(properties_list, NULL, shell);
 	assert(list);

@@ -57,7 +57,7 @@ int auto_parse_image(struct ai_client *ai, const char *image_file, const char *a
 	json_object *jdetections = NULL;
 	
 	rc = ai->predict(ai, image_data, cb_image, &jresult);
-	if(rc) {
+	if(rc || NULL == jresult) {
 		if(jresult) json_object_put(jresult);
 		return -1;
 	}
@@ -537,6 +537,29 @@ static gboolean on_ai_flags_state_changed(GtkSwitch *widget, gboolean state, str
 	priv->ai_enabled = state;
 	return FALSE;
 }
+static void on_toggle_sidebar(GtkToggleButton *toggle, struct shell_context *shell)
+{
+	assert(shell && shell->priv);
+	struct shell_private *priv = shell->priv;
+	
+	if(priv->classes_list) {
+		priv->show_sidebar = gtk_toggle_button_get_active(toggle);
+		gtk_widget_set_visible(gtk_widget_get_parent(priv->classes_list), priv->show_sidebar);
+	}
+	return;
+}
+static void on_toggle_properties_list(GtkToggleButton *toggle, struct shell_context *shell)
+{
+	assert(shell && shell->priv);
+	struct shell_private *priv = shell->priv;
+	
+	if(priv->properties) {
+		priv->show_properties_list = gtk_toggle_button_get_active(toggle);
+		gtk_widget_set_visible(
+			gtk_widget_get_parent(priv->properties->treeview), priv->show_properties_list);
+	}
+	return;
+}
 
 static int init_windows_with_ui_file(struct shell_context *shell, const char *ui_file)
 {
@@ -604,8 +627,31 @@ static int init_windows_with_ui_file(struct shell_context *shell, const char *ui
 	
 	GtkWidget *ai_flags_switcher = get_widget(builder, "ai_flags");
 	assert(ai_flags_switcher);
-	g_signal_connect(ai_flags_switcher, "state-set", G_CALLBACK(on_ai_flags_state_changed), shell);
+	if(ai_flags_switcher)
+	{
+		g_object_ref(ai_flags_switcher);
+		GtkWidget *vbox = gtk_widget_get_parent(ai_flags_switcher);
+		if(vbox) gtk_container_remove(GTK_CONTAINER(vbox), ai_flags_switcher);
+		gtk_header_bar_pack_start(GTK_HEADER_BAR(priv->header_bar), ai_flags_switcher);
+		g_object_unref(ai_flags_switcher);
+		
+		g_signal_connect(ai_flags_switcher, "state-set", G_CALLBACK(on_ai_flags_state_changed), shell);
+	}
 	
+	priv->show_sidebar = 1;
+	priv->show_properties_list = 1;
+	
+	GtkWidget *toggle_sidebar = get_widget(builder, "toggle_sidebar");
+	if(toggle_sidebar) {
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(toggle_sidebar), priv->show_sidebar);
+		g_signal_connect(toggle_sidebar, "toggled", G_CALLBACK(on_toggle_sidebar), shell);
+	}
+	
+	GtkWidget *toggle_properties_list = get_widget(builder, "toggle_properties_list");
+	if(toggle_properties_list) {
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(toggle_properties_list), priv->show_properties_list);
+		g_signal_connect(toggle_properties_list, "toggled", G_CALLBACK(on_toggle_properties_list), shell);
+	}
 	
 	// ...
 	gtk_window_set_default_size(GTK_WINDOW(window), 1280, 800);

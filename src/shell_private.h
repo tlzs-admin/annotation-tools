@@ -34,6 +34,9 @@ typedef struct shell_private
 	int ai_enabled;
 	
 	GtkWidget *classes_list;
+	
+	int show_sidebar;
+	int show_properties_list;
 }shell_private_t;
 
 

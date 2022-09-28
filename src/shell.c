@@ -105,7 +105,7 @@ static GtkFileFilter *create_image_files_filter()
 }
 
 
-static int load_image(const char *path_name, struct shell_context *shell)
+static int shell_load_image(const char *path_name, struct shell_context *shell)
 {
 	int rc = -1;
 	assert(shell && shell->priv);
@@ -173,7 +173,7 @@ static void on_image_file_changed(GtkFileChooserButton *file_chooser, struct she
 	char *filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(file_chooser));
 	if(NULL == filename) return;
 	
-	load_image(filename, shell);
+	shell_load_image(filename, shell);
 	
 	statusbar_set_info(priv->statusbar, "%s", filename);
 	free(filename);	
@@ -627,7 +627,7 @@ struct shell_context * shell_context_init(struct shell_context *shell, void * us
 	if(NULL == shell) shell = g_shell;
 	else *shell = g_shell[0];
 	
-	shell->user_data = shell;
+	shell->user_data = user_data;
 	shell->priv = shell_private_new(shell);
 	
 	return shell;

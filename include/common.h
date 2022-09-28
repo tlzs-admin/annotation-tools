@@ -20,11 +20,11 @@ extern "C" {
 #include <gtk/gtk.h>
 
 struct ai_client;
-struct shell_ctx;
+struct shell_context;
 typedef struct global_params
 {
 	json_object * jconfig;
-	struct shell_ctx * shell;
+	struct shell_context * shell;
 
 	int num_labels;
 	const char ** labels;
